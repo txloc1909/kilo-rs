@@ -1,5 +1,6 @@
 use crossterm::terminal;
 use std::io::{self, Read};
+use std::option::Option;
 
 struct RawModeGuard;
 
@@ -27,21 +28,38 @@ fn ctrl_key(c: u8) -> Option<u8> {
     }
 }
 
+fn read_key() -> io::Result<u8> {
+    let mut byte = [0u8; 1];
+    io::stdin().read_exact(&mut byte)?;
+    Ok(byte[0])
+}
+
+fn process_keypress() -> Option<()> {
+    match read_key() {
+        Ok(byte) => {
+            if byte == ctrl_key(b'q').unwrap_or(0) {
+                return None;
+            }
+            if byte.is_ascii_control() {
+                println!("Control character detected: {:x}\r", byte);
+            } else {
+                println!("Read byte: {}\r", byte);
+            }
+            Some(())
+        }
+        Err(e) => {
+            eprintln!("Error reading key: {}", e);
+            None
+        }
+    }
+}
+
 fn main() -> io::Result<()> {
     let _raw_mode_guard = RawModeGuard::new()?;
 
-    let mut stdin = io::stdin().lock();
-    let mut byte = [0u8; 1];
-
-    while stdin.read(&mut byte)? == 1 {
-        let curr_byte = byte[0];
-        if curr_byte == ctrl_key(b'q').unwrap_or(0) {
+    loop {
+        if !process_keypress().is_some() {
             break;
-        }
-        if curr_byte.is_ascii_control() {
-            println!("Control character detected: {:x}\r", curr_byte);
-        } else {
-            println!("Read byte: {}\r", curr_byte);
         }
     }
 
