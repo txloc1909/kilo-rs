@@ -1,6 +1,9 @@
+use crossterm::terminal;
 use std::io::{self, Read};
 
 fn main() -> io::Result<()> {
+    terminal::enable_raw_mode()?;
+
     let mut stdin = io::stdin().lock();
     let mut byte = [0u8; 1];
 
@@ -9,5 +12,7 @@ fn main() -> io::Result<()> {
             break;
         }
     }
+
+    terminal::disable_raw_mode()?;
     Ok(())
 }
