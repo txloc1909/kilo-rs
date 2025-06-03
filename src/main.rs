@@ -18,6 +18,15 @@ impl Drop for RawModeGuard {
     }
 }
 
+fn ctrl_key(c: u8) -> Option<u8> {
+    let c = c.to_ascii_uppercase();
+    if c >= b'A' && c <= b'Z' {
+        Some((c as u8) & 0x1F)
+    } else {
+        None
+    }
+}
+
 fn main() -> io::Result<()> {
     let _raw_mode_guard = RawModeGuard::new()?;
 
@@ -26,7 +35,7 @@ fn main() -> io::Result<()> {
 
     while stdin.read(&mut byte)? == 1 {
         let curr_byte = byte[0];
-        if curr_byte == b'q' {
+        if curr_byte == ctrl_key(b'q').unwrap_or(0) {
             break;
         }
         if curr_byte.is_ascii_control() {
