@@ -25,8 +25,14 @@ fn main() -> io::Result<()> {
     let mut byte = [0u8; 1];
 
     while stdin.read(&mut byte)? == 1 {
-        if byte[0] == b'q' {
+        let curr_byte = byte[0];
+        if curr_byte == b'q' {
             break;
+        }
+        if curr_byte.is_ascii_control() {
+            println!("Control character detected: {:x}\r", curr_byte);
+        } else {
+            println!("Read byte: {}\r", curr_byte);
         }
     }
 
