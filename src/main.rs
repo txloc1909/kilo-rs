@@ -1,10 +1,9 @@
-use std::io;
+use std::io::{self, Read};
 
-fn main() {
-    let mut input = String::new();
-    io::stdin()
-        .read_line(&mut input)
-        .ok()
-        .expect("Couldn't read line");
-    println!("{}", input);
+fn main() -> io::Result<()> {
+    let mut stdin = io::stdin().lock();
+    let mut byte = [0u8; 1];
+
+    while stdin.read(&mut byte)? == 1 {}
+    Ok(())
 }
