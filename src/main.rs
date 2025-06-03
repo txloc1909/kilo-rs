@@ -1,4 +1,4 @@
-use crossterm::{cursor::MoveTo, execute, terminal};
+use crossterm::{cursor::MoveTo, execute, style, terminal};
 use std::io::{self, Read};
 use std::option::Option;
 
@@ -34,6 +34,14 @@ fn read_key() -> io::Result<u8> {
     Ok(byte[0])
 }
 
+fn draw_rows() -> io::Result<()> {
+    let mut stdout = io::stdout();
+    for _ in 0..24 {
+        execute!(stdout, style::Print("~\r\n")).unwrap();
+    }
+    Ok(())
+}
+
 fn refresh_screen() -> io::Result<()> {
     let mut stdout = io::stdout();
     execute!(
@@ -42,6 +50,8 @@ fn refresh_screen() -> io::Result<()> {
         MoveTo(0, 0)
     )
     .unwrap();
+    draw_rows()?;
+    execute!(stdout, MoveTo(0, 0)).unwrap();
     Ok(())
 }
 
@@ -49,7 +59,8 @@ fn process_keypress() -> Option<()> {
     match read_key() {
         Ok(byte) => {
             if byte == ctrl_key(b'q').unwrap_or(0) {
-                refresh_screen().unwrap();
+                // clear the screen before exiting
+                execute!(io::stdout(), terminal::Clear(terminal::ClearType::All)).unwrap();
                 return None;
             }
             if byte.is_ascii_control() {
