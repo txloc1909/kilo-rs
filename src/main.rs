@@ -1,4 +1,4 @@
-use crossterm::{cursor::MoveTo, execute, queue, style, terminal};
+use crossterm::{cursor, execute, queue, style, terminal};
 use std::io::{self, Read, Write};
 use std::option::Option;
 
@@ -65,11 +65,12 @@ impl Editor {
         let mut stdout = io::stdout();
         queue!(
             stdout,
+            cursor::Hide,
             terminal::Clear(terminal::ClearType::All),
-            MoveTo(0, 0)
+            cursor::MoveTo(0, 0)
         )?;
         draw_rows(self.size.rows, &stdout)?;
-        queue!(stdout, MoveTo(0, 0))?;
+        queue!(stdout, cursor::MoveTo(0, 0), cursor::Show)?;
         stdout.flush()?;
         Ok(())
     }
