@@ -19,7 +19,11 @@ fn read_key() -> io::Result<u8> {
 
 fn draw_rows(rows: u16, mut stdout: &io::Stdout) -> io::Result<()> {
     for i in 0..rows {
-        queue!(stdout, style::Print("~"))?;
+        queue!(
+            stdout,
+            style::Print("~"),
+            terminal::Clear(terminal::ClearType::UntilNewLine)
+        )?;
         if i < rows - 1 {
             queue!(stdout, style::Print("\r\n"))?;
         }
@@ -63,12 +67,7 @@ impl Editor {
 
     fn refresh_screen(&self) -> io::Result<()> {
         let mut stdout = io::stdout();
-        queue!(
-            stdout,
-            cursor::Hide,
-            terminal::Clear(terminal::ClearType::All),
-            cursor::MoveTo(0, 0)
-        )?;
+        queue!(stdout, cursor::Hide, cursor::MoveTo(0, 0))?;
         draw_rows(self.size.rows, &stdout)?;
         queue!(stdout, cursor::MoveTo(0, 0), cursor::Show)?;
         stdout.flush()?;
