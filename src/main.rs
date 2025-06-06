@@ -60,12 +60,16 @@ fn process_keypress() -> Option<()> {
     }
 }
 
-pub struct Editor;
+pub struct Editor {
+    size: terminal::WindowSize,
+}
 
 impl Editor {
     pub fn new() -> io::Result<Self> {
         terminal::enable_raw_mode()?;
-        Ok(Self)
+        Ok(Self {
+            size: terminal::window_size().expect("Failed to get window size"),
+        })
     }
 
     pub fn run(&mut self) -> io::Result<()> {
