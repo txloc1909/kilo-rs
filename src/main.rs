@@ -1,5 +1,5 @@
-use crossterm::{cursor::MoveTo, execute, style, terminal};
-use std::io::{self, Read};
+use crossterm::{cursor::MoveTo, execute, queue, style, terminal};
+use std::io::{self, Read, Write};
 use std::option::Option;
 
 fn ctrl_key(c: u8) -> Option<u8> {
@@ -17,12 +17,11 @@ fn read_key() -> io::Result<u8> {
     Ok(byte[0])
 }
 
-fn draw_rows(rows: u16) -> io::Result<()> {
-    let mut stdout = io::stdout();
+fn draw_rows(rows: u16, mut stdout: &io::Stdout) -> io::Result<()> {
     for i in 0..rows {
-        execute!(stdout, style::Print("~")).unwrap();
+        queue!(stdout, style::Print("~"))?;
         if i < rows - 1 {
-            execute!(stdout, style::Print("\r\n")).unwrap();
+            queue!(stdout, style::Print("\r\n"))?;
         }
     }
     Ok(())
@@ -64,14 +63,14 @@ impl Editor {
 
     fn refresh_screen(&self) -> io::Result<()> {
         let mut stdout = io::stdout();
-        execute!(
+        queue!(
             stdout,
             terminal::Clear(terminal::ClearType::All),
             MoveTo(0, 0)
-        )
-        .unwrap();
-        draw_rows(self.size.rows)?;
-        execute!(stdout, MoveTo(0, 0)).unwrap();
+        )?;
+        draw_rows(self.size.rows, &stdout)?;
+        queue!(stdout, MoveTo(0, 0))?;
+        stdout.flush()?;
         Ok(())
     }
 
