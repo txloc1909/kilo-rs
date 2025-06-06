@@ -18,13 +18,22 @@ fn read_key() -> io::Result<u8> {
 }
 
 fn draw_rows(rows: u16, mut stdout: &io::Stdout) -> io::Result<()> {
-    for i in 0..rows {
-        queue!(
-            stdout,
-            style::Print("~"),
-            terminal::Clear(terminal::ClearType::UntilNewLine)
-        )?;
-        if i < rows - 1 {
+    for y in 0..rows {
+        if y == rows / 3 {
+            let welcome = "Kilo editor -- version 0.0.1";
+            queue!(
+                stdout,
+                style::Print("~"),
+                style::Print(format!("{:^width$}", welcome, width = rows.into()))
+            )?;
+        } else {
+            queue!(
+                stdout,
+                style::Print("~"),
+                terminal::Clear(terminal::ClearType::UntilNewLine)
+            )?;
+        }
+        if y < rows - 1 {
             queue!(stdout, style::Print("\r\n"))?;
         }
     }
