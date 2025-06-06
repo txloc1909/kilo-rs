@@ -17,24 +17,11 @@ fn read_key() -> io::Result<u8> {
     Ok(byte[0])
 }
 
-fn draw_rows() -> io::Result<()> {
+fn draw_rows(rows: u16) -> io::Result<()> {
     let mut stdout = io::stdout();
-    for _ in 0..24 {
+    for _ in 0..rows {
         execute!(stdout, style::Print("~\r\n")).unwrap();
     }
-    Ok(())
-}
-
-fn refresh_screen() -> io::Result<()> {
-    let mut stdout = io::stdout();
-    execute!(
-        stdout,
-        terminal::Clear(terminal::ClearType::All),
-        MoveTo(0, 0)
-    )
-    .unwrap();
-    draw_rows()?;
-    execute!(stdout, MoveTo(0, 0)).unwrap();
     Ok(())
 }
 
@@ -72,9 +59,22 @@ impl Editor {
         })
     }
 
+    fn refresh_screen(&self) -> io::Result<()> {
+        let mut stdout = io::stdout();
+        execute!(
+            stdout,
+            terminal::Clear(terminal::ClearType::All),
+            MoveTo(0, 0)
+        )
+        .unwrap();
+        draw_rows(self.size.rows)?;
+        execute!(stdout, MoveTo(0, 0)).unwrap();
+        Ok(())
+    }
+
     pub fn run(&mut self) -> io::Result<()> {
         loop {
-            refresh_screen()?;
+            self.refresh_screen()?;
             if !process_keypress().is_some() {
                 break;
             }
