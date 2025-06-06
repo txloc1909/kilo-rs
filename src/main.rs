@@ -19,8 +19,11 @@ fn read_key() -> io::Result<u8> {
 
 fn draw_rows(rows: u16) -> io::Result<()> {
     let mut stdout = io::stdout();
-    for _ in 0..rows {
-        execute!(stdout, style::Print("~\r\n")).unwrap();
+    for i in 0..rows {
+        execute!(stdout, style::Print("~")).unwrap();
+        if i < rows - 1 {
+            execute!(stdout, style::Print("\r\n")).unwrap();
+        }
     }
     Ok(())
 }
