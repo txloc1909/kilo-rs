@@ -2,23 +2,6 @@ use crossterm::{cursor::MoveTo, execute, style, terminal};
 use std::io::{self, Read};
 use std::option::Option;
 
-struct RawModeGuard;
-
-impl RawModeGuard {
-    fn new() -> io::Result<Self> {
-        terminal::enable_raw_mode()?;
-        Ok(RawModeGuard)
-    }
-}
-
-impl Drop for RawModeGuard {
-    fn drop(&mut self) {
-        if let Err(e) = terminal::disable_raw_mode() {
-            eprintln!("Error: Failed to disable raw mode: {}", e);
-        }
-    }
-}
-
 fn ctrl_key(c: u8) -> Option<u8> {
     let c = c.to_ascii_uppercase();
     if c >= b'A' && c <= b'Z' {
@@ -77,15 +60,35 @@ fn process_keypress() -> Option<()> {
     }
 }
 
-fn main() -> io::Result<()> {
-    let _raw_mode_guard = RawModeGuard::new()?;
+pub struct Editor;
 
-    loop {
-        refresh_screen()?;
-        if !process_keypress().is_some() {
-            break;
-        }
+impl Editor {
+    pub fn new() -> io::Result<Self> {
+        terminal::enable_raw_mode()?;
+        Ok(Self)
     }
 
+    pub fn run(&mut self) -> io::Result<()> {
+        loop {
+            refresh_screen()?;
+            if !process_keypress().is_some() {
+                break;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Drop for Editor {
+    fn drop(&mut self) {
+        if let Err(e) = terminal::disable_raw_mode() {
+            eprintln!("Error: Failed to disable raw mode: {}", e);
+        }
+    }
+}
+
+fn main() -> io::Result<()> {
+    let mut editor = Editor::new()?;
+    editor.run()?;
     Ok(())
 }
