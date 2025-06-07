@@ -63,6 +63,8 @@ fn process_keypress() -> Option<()> {
 }
 
 pub struct Editor {
+    cursor_x: u16,
+    cursor_y: u16,
     size: terminal::WindowSize,
 }
 
@@ -70,6 +72,8 @@ impl Editor {
     pub fn new() -> io::Result<Self> {
         terminal::enable_raw_mode()?;
         Ok(Self {
+            cursor_x: 0,
+            cursor_y: 0,
             size: terminal::window_size().expect("Failed to get window size"),
         })
     }
@@ -78,7 +82,11 @@ impl Editor {
         let mut stdout = io::stdout();
         queue!(stdout, cursor::Hide, cursor::MoveTo(0, 0))?;
         draw_rows(self.size.rows, &stdout)?;
-        queue!(stdout, cursor::MoveTo(0, 0), cursor::Show)?;
+        queue!(
+            stdout,
+            cursor::MoveTo(self.cursor_x, self.cursor_y),
+            cursor::Show
+        )?;
         stdout.flush()?;
         Ok(())
     }
