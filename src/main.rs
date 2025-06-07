@@ -40,28 +40,6 @@ fn draw_rows(rows: u16, mut stdout: &io::Stdout) -> io::Result<()> {
     Ok(())
 }
 
-fn process_keypress() -> Option<()> {
-    match read_key() {
-        Ok(byte) => {
-            if byte == ctrl_key(b'q').unwrap_or(0) {
-                // clear the screen before exiting
-                execute!(io::stdout(), terminal::Clear(terminal::ClearType::All)).unwrap();
-                return None;
-            }
-            if byte.is_ascii_control() {
-                println!("Control character detected: {:x}\r", byte);
-            } else {
-                println!("Read byte: {}\r", byte);
-            }
-            Some(())
-        }
-        Err(e) => {
-            eprintln!("Error reading key: {}", e);
-            None
-        }
-    }
-}
-
 pub struct Editor {
     cursor_x: u16,
     cursor_y: u16,
@@ -91,10 +69,52 @@ impl Editor {
         Ok(())
     }
 
+    fn move_cursor(&mut self, key: u8) {
+        match key {
+            b'a' => {
+                self.cursor_x = self.cursor_x - 1;
+            }
+            b'd' => {
+                self.cursor_x = self.cursor_x + 1;
+            }
+            b'w' => {
+                self.cursor_y = self.cursor_y - 1;
+            }
+            b's' => {
+                self.cursor_y = self.cursor_y + 1;
+            }
+            _ => {
+                // do nothing
+            }
+        }
+    }
+
+    fn process_keypress(&mut self) -> Option<()> {
+        match read_key() {
+            Ok(byte) => {
+                if byte == ctrl_key(b'q').unwrap_or(0) {
+                    // clear the screen before exiting
+                    execute!(io::stdout(), terminal::Clear(terminal::ClearType::All)).unwrap();
+                    return None;
+                }
+                if byte.is_ascii_control() {
+                    println!("Control character detected: {:x}\r", byte);
+                } else {
+                    println!("Read byte: {}\r", byte);
+                }
+                Some(())
+            }
+            Err(e) => {
+                eprintln!("Error reading key: {}", e);
+                None
+            }
+        }
+    }
+
     pub fn run(&mut self) -> io::Result<()> {
         loop {
             self.refresh_screen()?;
-            if !process_keypress().is_some() {
+            if !self.process_keypress().is_some() {
                 break;
             }
         }
