@@ -1,4 +1,5 @@
 use crossterm::{cursor, execute, queue, style, terminal};
+use std::cmp::{max, min};
 use std::io::{self, Read, Write};
 use std::option::Option;
 
@@ -72,16 +73,32 @@ impl Editor {
     fn move_cursor(&mut self, key: u8) {
         match key {
             b'a' => {
-                self.cursor_x = self.cursor_x - 1;
+                self.cursor_x = if self.cursor_x > 0 {
+                    self.cursor_x - 1
+                } else {
+                    0
+                }
             }
             b'd' => {
-                self.cursor_x = self.cursor_x + 1;
+                self.cursor_x = if self.cursor_x < self.size.columns {
+                    self.cursor_x + 1
+                } else {
+                    self.size.columns
+                }
             }
             b'w' => {
-                self.cursor_y = self.cursor_y - 1;
+                self.cursor_y = if self.cursor_y > 0 {
+                    self.cursor_y - 1
+                } else {
+                    0
+                }
             }
             b's' => {
-                self.cursor_y = self.cursor_y + 1;
+                self.cursor_y = if self.cursor_y < self.size.rows {
+                    self.cursor_y + 1
+                } else {
+                    self.size.rows
+                }
             }
             _ => {
                 // do nothing
@@ -95,14 +112,11 @@ impl Editor {
                 if byte == ctrl_key(b'q').unwrap_or(0) {
                     // clear the screen before exiting
                     execute!(io::stdout(), terminal::Clear(terminal::ClearType::All)).unwrap();
-                    return None;
-                }
-                if byte.is_ascii_control() {
-                    println!("Control character detected: {:x}\r", byte);
+                    None
                 } else {
-                    println!("Read byte: {}\r", byte);
+                    self.move_cursor(byte);
+                    Some(())
                 }
-                Some(())
             }
             Err(e) => {
                 eprintln!("Error reading key: {}", e);
