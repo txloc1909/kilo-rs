@@ -10,6 +10,8 @@ pub enum KeyEvent {
     ArrowDown,
     ArrowLeft,
     ArrowRight,
+    PageUp,
+    PageDown,
     Null,
 }
 
@@ -29,6 +31,8 @@ fn read_key() -> io::Result<KeyEvent> {
                     KeyCode::Down => KeyEvent::ArrowDown,
                     KeyCode::Left => KeyEvent::ArrowLeft,
                     KeyCode::Right => KeyEvent::ArrowRight,
+                    KeyCode::PageUp => KeyEvent::PageUp,
+                    KeyCode::PageDown => KeyEvent::PageDown,
                     _ => KeyEvent::Null,
                 },
             };
@@ -135,8 +139,27 @@ impl Editor {
                         execute!(io::stdout(), terminal::Clear(terminal::ClearType::All)).unwrap();
                         None
                     }
-                    _ => {
+                    KeyEvent::ArrowUp
+                    | KeyEvent::ArrowDown
+                    | KeyEvent::ArrowLeft
+                    | KeyEvent::ArrowRight => {
                         self.move_cursor(key_event);
+                        Some(())
+                    }
+                    KeyEvent::PageUp => {
+                        for _ in 1..self.size.rows {
+                            self.move_cursor(KeyEvent::ArrowUp);
+                        }
+                        Some(())
+                    }
+                    KeyEvent::PageDown => {
+                        for _ in 1..self.size.rows {
+                            self.move_cursor(KeyEvent::ArrowDown);
+                        }
+                        Some(())
+                    }
+                    _ => {
+                        // do nothing
                         Some(())
                     }
                 }
