@@ -1,21 +1,41 @@
+use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use crossterm::{cursor, execute, queue, style, terminal};
-use std::cmp::{max, min};
-use std::io::{self, Read, Write};
+use std::io::{self, Write};
 use std::option::Option;
 
-fn ctrl_key(c: u8) -> Option<u8> {
-    let c = c.to_ascii_uppercase();
-    if c >= b'A' && c <= b'Z' {
-        Some((c as u8) & 0x1F)
-    } else {
-        None
-    }
+#[derive(PartialEq, Eq)]
+pub enum KeyEvent {
+    Ctrl(char),
+    ArrowUp,
+    ArrowDown,
+    ArrowLeft,
+    ArrowRight,
+    Null,
 }
 
-fn read_key() -> io::Result<u8> {
-    let mut byte = [0u8; 1];
-    io::stdin().read_exact(&mut byte)?;
-    Ok(byte[0])
+fn read_key() -> io::Result<KeyEvent> {
+    loop {
+        if let Event::Key(key_event) = event::read()? {
+            let key = match key_event.modifiers {
+                KeyModifiers::CONTROL => {
+                    if let KeyCode::Char(q) = key_event.code {
+                        KeyEvent::Ctrl(q)
+                    } else {
+                        KeyEvent::Null
+                    }
+                }
+                _ => match key_event.code {
+                    KeyCode::Up => KeyEvent::ArrowUp,
+                    KeyCode::Down => KeyEvent::ArrowDown,
+                    KeyCode::Left => KeyEvent::ArrowLeft,
+                    KeyCode::Right => KeyEvent::ArrowRight,
+                    _ => KeyEvent::Null,
+                },
+            };
+            return Ok(key);
+        };
+        return Err(io::Error::new(io::ErrorKind::Other, "Fail to read key"));
+    }
 }
 
 fn draw_rows(rows: u16, mut stdout: &io::Stdout) -> io::Result<()> {
@@ -70,30 +90,30 @@ impl Editor {
         Ok(())
     }
 
-    fn move_cursor(&mut self, key: u8) {
-        match key {
-            b'a' => {
+    fn move_cursor(&mut self, key_event: KeyEvent) {
+        match key_event {
+            KeyEvent::ArrowLeft => {
                 self.cursor_x = if self.cursor_x > 0 {
                     self.cursor_x - 1
                 } else {
                     0
                 }
             }
-            b'd' => {
+            KeyEvent::ArrowRight => {
                 self.cursor_x = if self.cursor_x < self.size.columns {
                     self.cursor_x + 1
                 } else {
                     self.size.columns
                 }
             }
-            b'w' => {
+            KeyEvent::ArrowUp => {
                 self.cursor_y = if self.cursor_y > 0 {
                     self.cursor_y - 1
                 } else {
                     0
                 }
             }
-            b's' => {
+            KeyEvent::ArrowDown => {
                 self.cursor_y = if self.cursor_y < self.size.rows {
                     self.cursor_y + 1
                 } else {
@@ -108,14 +128,17 @@ impl Editor {
 
     fn process_keypress(&mut self) -> Option<()> {
         match read_key() {
-            Ok(byte) => {
-                if byte == ctrl_key(b'q').unwrap_or(0) {
-                    // clear the screen before exiting
-                    execute!(io::stdout(), terminal::Clear(terminal::ClearType::All)).unwrap();
-                    None
-                } else {
-                    self.move_cursor(byte);
-                    Some(())
+            Ok(key_event) => {
+                match key_event {
+                    KeyEvent::Ctrl('q') => {
+                        // clear the screen before exiting
+                        execute!(io::stdout(), terminal::Clear(terminal::ClearType::All)).unwrap();
+                        None
+                    }
+                    _ => {
+                        self.move_cursor(key_event);
+                        Some(())
+                    }
                 }
             }
             Err(e) => {
