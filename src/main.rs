@@ -12,6 +12,8 @@ pub enum KeyEvent {
     ArrowRight,
     PageUp,
     PageDown,
+    HomeKey,
+    EndKey,
     Null,
 }
 
@@ -33,6 +35,8 @@ fn read_key() -> io::Result<KeyEvent> {
                     KeyCode::Right => KeyEvent::ArrowRight,
                     KeyCode::PageUp => KeyEvent::PageUp,
                     KeyCode::PageDown => KeyEvent::PageDown,
+                    KeyCode::Home => KeyEvent::HomeKey,
+                    KeyCode::End => KeyEvent::EndKey,
                     _ => KeyEvent::Null,
                 },
             };
@@ -156,6 +160,14 @@ impl Editor {
                         for _ in 1..self.size.rows {
                             self.move_cursor(KeyEvent::ArrowDown);
                         }
+                        Some(())
+                    }
+                    KeyEvent::HomeKey => {
+                        self.cursor_x = 0;
+                        Some(())
+                    }
+                    KeyEvent::EndKey => {
+                        self.cursor_x = self.size.columns - 1;
                         Some(())
                     }
                     _ => {
