@@ -52,6 +52,8 @@ pub struct Editor {
     cursor_x: u16,
     cursor_y: u16,
     size: terminal::WindowSize,
+    num_rows: u16,
+    row: String,
 }
 
 impl Editor {
@@ -61,7 +63,14 @@ impl Editor {
             cursor_x: 0,
             cursor_y: 0,
             size: terminal::window_size().expect("Failed to get window size"),
+            num_rows: 0,
+            row: "".to_string(),
         })
+    }
+
+    pub fn open(&mut self) {
+        self.num_rows = 1;
+        self.row = "Hello, World!".to_string();
     }
 
     fn refresh_screen(&self) -> io::Result<()> {
@@ -164,18 +173,28 @@ impl Editor {
 
     fn draw_rows(&self, mut stdout: &io::Stdout) -> io::Result<()> {
         let rows = self.size.rows as usize;
+        let num_rows = self.num_rows as usize;
         for y in 0..rows {
-            if y == rows / 3 {
-                let welcome = "Kilo editor -- version 0.0.1";
-                queue!(
-                    stdout,
-                    style::Print("~"),
-                    style::Print(format!("{:^width$}", welcome, width = rows.into()))
-                )?;
+            if y >= num_rows {
+                if y == rows / 3 {
+                    let welcome = "Kilo editor -- version 0.0.1";
+                    queue!(
+                        stdout,
+                        style::Print("~"),
+                        style::Print(format!("{:^width$}", welcome, width = rows.into()))
+                    )?;
+                } else {
+                    queue!(
+                        stdout,
+                        style::Print("~"),
+                        terminal::Clear(terminal::ClearType::UntilNewLine)
+                    )?;
+                }
             } else {
+                let line_len = std::cmp::min(self.row.len(), self.size.columns as usize);
                 queue!(
                     stdout,
-                    style::Print("~"),
+                    style::Print(&self.row[..line_len]),
                     terminal::Clear(terminal::ClearType::UntilNewLine)
                 )?;
             }
@@ -207,6 +226,7 @@ impl Drop for Editor {
 
 fn main() -> io::Result<()> {
     let mut editor = Editor::new()?;
+    editor.open();
     editor.run()?;
     Ok(())
 }
