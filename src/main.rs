@@ -48,29 +48,6 @@ fn read_key() -> io::Result<KeyEvent> {
     }
 }
 
-fn draw_rows(rows: u16, mut stdout: &io::Stdout) -> io::Result<()> {
-    for y in 0..rows {
-        if y == rows / 3 {
-            let welcome = "Kilo editor -- version 0.0.1";
-            queue!(
-                stdout,
-                style::Print("~"),
-                style::Print(format!("{:^width$}", welcome, width = rows.into()))
-            )?;
-        } else {
-            queue!(
-                stdout,
-                style::Print("~"),
-                terminal::Clear(terminal::ClearType::UntilNewLine)
-            )?;
-        }
-        if y < rows - 1 {
-            queue!(stdout, style::Print("\r\n"))?;
-        }
-    }
-    Ok(())
-}
-
 pub struct Editor {
     cursor_x: u16,
     cursor_y: u16,
@@ -90,7 +67,7 @@ impl Editor {
     fn refresh_screen(&self) -> io::Result<()> {
         let mut stdout = io::stdout();
         queue!(stdout, cursor::Hide, cursor::MoveTo(0, 0))?;
-        draw_rows(self.size.rows, &stdout)?;
+        self.draw_rows(&stdout)?;
         queue!(
             stdout,
             cursor::MoveTo(self.cursor_x, self.cursor_y),
@@ -183,6 +160,30 @@ impl Editor {
                 None
             }
         }
+    }
+
+    fn draw_rows(&self, mut stdout: &io::Stdout) -> io::Result<()> {
+        let rows = self.size.rows as usize;
+        for y in 0..rows {
+            if y == rows / 3 {
+                let welcome = "Kilo editor -- version 0.0.1";
+                queue!(
+                    stdout,
+                    style::Print("~"),
+                    style::Print(format!("{:^width$}", welcome, width = rows.into()))
+                )?;
+            } else {
+                queue!(
+                    stdout,
+                    style::Print("~"),
+                    terminal::Clear(terminal::ClearType::UntilNewLine)
+                )?;
+            }
+            if y < rows - 1 {
+                queue!(stdout, style::Print("\r\n"))?;
+            }
+        }
+        Ok(())
     }
 
     pub fn run(&mut self) -> io::Result<()> {
