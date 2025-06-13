@@ -1,7 +1,9 @@
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
 use crossterm::{cursor, execute, queue, style, terminal};
-use std::io::{self, Write};
+use std::fs::File;
+use std::io::{self, BufRead, Write};
 use std::option::Option;
+use std::path::Path;
 
 #[derive(PartialEq, Eq)]
 pub enum KeyEvent {
@@ -48,12 +50,18 @@ fn read_key() -> io::Result<KeyEvent> {
     }
 }
 
+fn read_lines(path: &Path) -> io::Result<Vec<String>> {
+    let file = File::open(path)?;
+    let reader = io::BufReader::new(file);
+
+    reader.lines().collect()
+}
+
 pub struct Editor {
     cursor_x: u16,
     cursor_y: u16,
     size: terminal::WindowSize,
-    num_rows: u16,
-    row: String,
+    rows: Vec<String>,
 }
 
 impl Editor {
@@ -63,14 +71,20 @@ impl Editor {
             cursor_x: 0,
             cursor_y: 0,
             size: terminal::window_size().expect("Failed to get window size"),
-            num_rows: 0,
-            row: "".to_string(),
+            rows: vec![String::new()],
         })
     }
 
-    pub fn open(&mut self) {
-        self.num_rows = 1;
-        self.row = "Hello, World!".to_string();
+    pub fn open(&mut self, path: &std::path::Path) -> Result<(), io::Error> {
+        if let Ok(lines) = read_lines(path) {
+            self.rows = lines;
+            Ok(())
+        } else {
+            Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("Error: Could not read file at {:?}", path),
+            ))
+        }
     }
 
     fn refresh_screen(&self) -> io::Result<()> {
@@ -173,7 +187,7 @@ impl Editor {
 
     fn draw_rows(&self, mut stdout: &io::Stdout) -> io::Result<()> {
         let rows = self.size.rows as usize;
-        let num_rows = self.num_rows as usize;
+        let num_rows = self.rows.len();
         for y in 0..rows {
             if y >= num_rows {
                 if y == rows / 3 {
@@ -191,10 +205,11 @@ impl Editor {
                     )?;
                 }
             } else {
-                let line_len = std::cmp::min(self.row.len(), self.size.columns as usize);
+                let curr_row = &self.rows[y];
+                let line_len = std::cmp::min(curr_row.len(), self.size.columns as usize);
                 queue!(
                     stdout,
-                    style::Print(&self.row[..line_len]),
+                    style::Print(&curr_row[..line_len]),
                     terminal::Clear(terminal::ClearType::UntilNewLine)
                 )?;
             }
@@ -226,7 +241,11 @@ impl Drop for Editor {
 
 fn main() -> io::Result<()> {
     let mut editor = Editor::new()?;
-    editor.open();
+    let args: Vec<String> = std::env::args().collect();
+
+    if args.len() == 2 {
+        editor.open(Path::new(&args[1]));
+    }
     editor.run()?;
     Ok(())
 }
