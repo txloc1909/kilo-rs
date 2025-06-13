@@ -14,6 +14,7 @@ pub enum KeyEvent {
     PageDown,
     HomeKey,
     EndKey,
+    DelKey,
     Null,
 }
 
@@ -37,6 +38,7 @@ fn read_key() -> io::Result<KeyEvent> {
                     KeyCode::PageDown => KeyEvent::PageDown,
                     KeyCode::Home => KeyEvent::HomeKey,
                     KeyCode::End => KeyEvent::EndKey,
+                    KeyCode::Delete => KeyEvent::DelKey,
                     _ => KeyEvent::Null,
                 },
             };
