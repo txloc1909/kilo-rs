@@ -61,6 +61,7 @@ pub struct Editor {
     cursor_x: u16,
     cursor_y: u16,
     row_offset: u16,
+    col_offset: u16,
     size: terminal::WindowSize,
     rows: Vec<String>,
 }
@@ -72,6 +73,7 @@ impl Editor {
             cursor_x: 0,
             cursor_y: 0,
             row_offset: 0,
+            col_offset: 0,
             size: terminal::window_size().expect("Failed to get window size"),
             rows: vec![String::new()],
         })
@@ -96,7 +98,10 @@ impl Editor {
         self.draw_rows(&stdout)?;
         queue!(
             stdout,
-            cursor::MoveTo(self.cursor_x, (self.cursor_y - self.row_offset) as u16),
+            cursor::MoveTo(
+                (self.cursor_x - self.col_offset) as u16,
+                (self.cursor_y - self.row_offset) as u16
+            ),
             cursor::Show
         )?;
         stdout.flush()?;
@@ -108,8 +113,12 @@ impl Editor {
             self.row_offset = self.cursor_y;
         } else if self.cursor_y >= self.row_offset + self.size.rows {
             self.row_offset = self.cursor_y - self.size.rows + 1;
-        } else {
-            // do nothing
+        }
+
+        if self.cursor_x < self.col_offset {
+            self.col_offset = self.cursor_x;
+        } else if self.cursor_x >= self.col_offset + self.size.columns {
+            self.col_offset = self.cursor_x - self.size.columns + 1;
         }
     }
 
@@ -123,11 +132,7 @@ impl Editor {
                 }
             }
             KeyEvent::ArrowRight => {
-                self.cursor_x = if self.cursor_x < self.size.columns {
-                    self.cursor_x + 1
-                } else {
-                    self.size.columns
-                }
+                self.cursor_x = self.cursor_x + 1;
             }
             KeyEvent::ArrowUp => {
                 self.cursor_y = if self.cursor_y > 0 {
@@ -222,10 +227,12 @@ impl Editor {
                 }
             } else {
                 let curr_row = &self.rows[row];
-                let line_len = std::cmp::min(curr_row.len(), self.size.columns as usize);
+                let visible_line = &curr_row[self.col_offset as usize..];
+                let line_len = curr_row.len() as i32 - self.col_offset as i32;
+                let line_len = line_len.clamp(0, self.size.columns as i32) as usize;
                 queue!(
                     stdout,
-                    style::Print(&curr_row[..line_len]),
+                    style::Print(visible_line[..line_len].to_string()),
                     terminal::Clear(terminal::ClearType::UntilNewLine)
                 )?;
             }
