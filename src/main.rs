@@ -132,7 +132,14 @@ impl Editor {
                 }
             }
             KeyEvent::ArrowRight => {
-                self.cursor_x = self.cursor_x + 1;
+                let row: Option<&String> = self.rows.get(self.cursor_y as usize);
+                if let Some(row) = row {
+                    self.cursor_x = if self.cursor_x < row.len() as u16 {
+                        self.cursor_x + 1
+                    } else {
+                        row.len() as u16
+                    };
+                }
             }
             KeyEvent::ArrowUp => {
                 self.cursor_y = if self.cursor_y > 0 {
@@ -152,6 +159,11 @@ impl Editor {
             _ => {
                 // do nothing
             }
+        }
+
+        let row: Option<&String> = self.rows.get(self.cursor_y as usize);
+        if let Some(row) = row {
+            self.cursor_x = self.cursor_x.min(row.len() as u16);
         }
     }
 
