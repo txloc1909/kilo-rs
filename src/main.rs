@@ -60,6 +60,7 @@ fn read_lines(path: &Path) -> io::Result<Vec<String>> {
 pub struct Editor {
     cursor_x: u16,
     cursor_y: u16,
+    row_offset: u16,
     size: terminal::WindowSize,
     rows: Vec<String>,
 }
@@ -70,6 +71,7 @@ impl Editor {
         Ok(Self {
             cursor_x: 0,
             cursor_y: 0,
+            row_offset: 0,
             size: terminal::window_size().expect("Failed to get window size"),
             rows: vec![String::new()],
         })
@@ -87,17 +89,28 @@ impl Editor {
         }
     }
 
-    fn refresh_screen(&self) -> io::Result<()> {
+    fn refresh_screen(&mut self) -> io::Result<()> {
+        self.scroll();
         let mut stdout = io::stdout();
         queue!(stdout, cursor::Hide, cursor::MoveTo(0, 0))?;
         self.draw_rows(&stdout)?;
         queue!(
             stdout,
-            cursor::MoveTo(self.cursor_x, self.cursor_y),
+            cursor::MoveTo(self.cursor_x, (self.cursor_y - self.row_offset) as u16),
             cursor::Show
         )?;
         stdout.flush()?;
         Ok(())
+    }
+
+    fn scroll(&mut self) {
+        if self.cursor_y < self.row_offset {
+            self.row_offset = self.cursor_y;
+        } else if self.cursor_y >= self.row_offset + self.size.rows {
+            self.row_offset = self.cursor_y - self.size.rows + 1;
+        } else {
+            // do nothing
+        }
     }
 
     fn move_cursor(&mut self, key_event: KeyEvent) {
@@ -124,7 +137,8 @@ impl Editor {
                 }
             }
             KeyEvent::ArrowDown => {
-                self.cursor_y = if self.cursor_y < self.size.rows {
+                let num_rows = self.rows.len() as u16;
+                self.cursor_y = if self.cursor_y < num_rows {
                     self.cursor_y + 1
                 } else {
                     self.size.rows
@@ -187,10 +201,12 @@ impl Editor {
 
     fn draw_rows(&self, mut stdout: &io::Stdout) -> io::Result<()> {
         let rows = self.size.rows as usize;
+        let row_offset = self.row_offset as usize;
         let num_rows = self.rows.len();
-        for y in 0..rows {
-            if y >= num_rows {
-                if y == rows / 3 {
+
+        for (y, row) in (0..rows).zip(row_offset..row_offset + rows) {
+            if row >= num_rows {
+                if num_rows == 0 && y == rows / 3 {
                     let welcome = "Kilo editor -- version 0.0.1";
                     queue!(
                         stdout,
@@ -205,7 +221,7 @@ impl Editor {
                     )?;
                 }
             } else {
-                let curr_row = &self.rows[y];
+                let curr_row = &self.rows[row];
                 let line_len = std::cmp::min(curr_row.len(), self.size.columns as usize);
                 queue!(
                     stdout,
@@ -244,7 +260,7 @@ fn main() -> io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() == 2 {
-        editor.open(Path::new(&args[1]));
+        let _ = editor.open(Path::new(&args[1]));
     }
     editor.run()?;
     Ok(())
