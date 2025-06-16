@@ -123,25 +123,28 @@ impl Editor {
     }
 
     fn move_cursor(&mut self, key_event: KeyEvent) {
+        let row: Option<&String> = self.rows.get(self.cursor_y as usize);
+
         match key_event {
             KeyEvent::ArrowLeft => {
                 if self.cursor_x != 0 {
                     self.cursor_x -= 1;
                 } else if self.cursor_y > 0 {
                     self.cursor_y -= 1;
-                    if let Some(row) = self.rows.get(self.cursor_y as usize) {
+                    if let Some(row) = row {
                         self.cursor_x = row.len() as u16;
                     }
                 }
             }
             KeyEvent::ArrowRight => {
-                let row: Option<&String> = self.rows.get(self.cursor_y as usize);
                 if let Some(row) = row {
-                    self.cursor_x = if self.cursor_x < row.len() as u16 {
-                        self.cursor_x + 1
-                    } else {
-                        row.len() as u16
-                    };
+                    let line_len = row.len() as u16;
+                    if self.cursor_x < line_len {
+                        self.cursor_x += 1;
+                    } else if self.cursor_x == line_len {
+                        self.cursor_y += 1;
+                        self.cursor_x = 0;
+                    }
                 }
             }
             KeyEvent::ArrowUp => {
@@ -164,7 +167,6 @@ impl Editor {
             }
         }
 
-        let row: Option<&String> = self.rows.get(self.cursor_y as usize);
         if let Some(row) = row {
             self.cursor_x = self.cursor_x.min(row.len() as u16);
         }
