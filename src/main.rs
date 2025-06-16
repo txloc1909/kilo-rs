@@ -125,10 +125,13 @@ impl Editor {
     fn move_cursor(&mut self, key_event: KeyEvent) {
         match key_event {
             KeyEvent::ArrowLeft => {
-                self.cursor_x = if self.cursor_x > 0 {
-                    self.cursor_x - 1
-                } else {
-                    0
+                if self.cursor_x != 0 {
+                    self.cursor_x -= 1;
+                } else if self.cursor_y > 0 {
+                    self.cursor_y -= 1;
+                    if let Some(row) = self.rows.get(self.cursor_y as usize) {
+                        self.cursor_x = row.len() as u16;
+                    }
                 }
             }
             KeyEvent::ArrowRight => {
