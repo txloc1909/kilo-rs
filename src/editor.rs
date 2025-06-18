@@ -57,13 +57,18 @@ pub fn read_lines(path: &Path) -> io::Result<Vec<String>> {
     reader.lines().collect()
 }
 
+struct ERow {
+    content: String,
+    rendered: String,
+}
+
 pub struct Editor {
     cursor_x: u16,
     cursor_y: u16,
     row_offset: u16,
     col_offset: u16,
     size: terminal::WindowSize,
-    rows: Vec<String>,
+    rows: Vec<ERow>,
 }
 
 impl Editor {
@@ -75,13 +80,22 @@ impl Editor {
             row_offset: 0,
             col_offset: 0,
             size: terminal::window_size().expect("Failed to get window size"),
-            rows: vec![String::new()],
+            rows: vec![ERow {
+                content: String::new(),
+                rendered: String::new(),
+            }],
         })
     }
 
     pub fn open(&mut self, path: &std::path::Path) -> Result<(), io::Error> {
         if let Ok(lines) = read_lines(path) {
-            self.rows = lines;
+            self.rows = lines
+                .into_iter()
+                .map(|line| ERow {
+                    content: line.clone(),
+                    rendered: line.clone(),
+                })
+                .collect();
             Ok(())
         } else {
             Err(io::Error::new(
@@ -123,7 +137,7 @@ impl Editor {
     }
 
     fn move_cursor(&mut self, key_event: KeyEvent) {
-        let row: Option<&String> = self.rows.get(self.cursor_y as usize);
+        let row: Option<&String> = self.rows.get(self.cursor_y as usize).map(|r| &r.content);
 
         match key_event {
             KeyEvent::ArrowLeft => {
@@ -243,7 +257,7 @@ impl Editor {
                     )?;
                 }
             } else {
-                let curr_row = &self.rows[row];
+                let curr_row = &self.rows[row].rendered;
                 let visible_line = &curr_row[self.col_offset as usize..];
                 let line_len = curr_row.len() as i32 - self.col_offset as i32;
                 let line_len = line_len.clamp(0, self.size.columns as i32) as usize;
